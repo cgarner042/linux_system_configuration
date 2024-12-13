@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name={{ item.name }}
+Exec={{ ansible_env.HOME }}/AppImages/{{ item.name }}.AppImage
+Icon={{ item.icon }}
+Type=Application
+Categories={{ item.category }}

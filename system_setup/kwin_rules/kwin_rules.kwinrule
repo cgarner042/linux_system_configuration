@@ -1,0 +1,43 @@
+[Settings for Dolphin]
+Description=Settings for Dolphin
+position=2231,0
+positionrule=3
+size=521,414
+sizerule=3
+types=1
+wmclass=dolphin org.kde.dolphin
+wmclasscomplete=true
+wmclassmatch=1
+
+[Settings for Firefox]
+Description=Settings for Firefox
+position=0,0
+positionrule=3
+size=1376,1108
+sizerule=3
+types=1
+wmclass=firefox firefox
+wmclasscomplete=true
+wmclassmatch=1
+
+[Settings for Konsole]
+Description=Settings for Konsole
+position=1376,0
+positionrule=3
+size=855,414
+sizerule=3
+types=1
+wmclass=konsole org.kde.konsole
+wmclasscomplete=true
+wmclassmatch=1
+
+[Settings for kate]
+Description=Settings for kate
+position=1376,414
+positionrule=3
+size=1378,694
+sizerule=3
+types=1
+wmclass=kate org.kde.kate
+wmclasscomplete=true
+wmclassmatch=1

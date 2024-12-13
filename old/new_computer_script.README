@@ -1,0 +1,37 @@
+download:
+    elegoo kit
+    scripts
+    .desktop files
+    3d_models
+    Ai_models
+    jupyter_notebooks
+    documents
+
+install:
+    build-essential
+    ollama?
+    conda
+        jupyter notebook
+        jupyter lab
+        ai environments (run scripts)
+    chrome
+    opera
+    mailspring
+    vscode
+    marktext
+    arduino
+        permissions?
+    freecad
+    cura
+        add to dock
+    darktable
+    cantor? (math)
+    labplot? (math)
+
+
+set up dock and desktop
+add bookmarks to file explorer
+    scripts
+    jupyter_notebooks
+    3d_models
+    Ai_models

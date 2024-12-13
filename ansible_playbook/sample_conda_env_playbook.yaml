@@ -1,0 +1,66 @@
+---
+- name: Setup Conda Environments
+  hosts: localhost
+  vars:
+    conda_path: "{{ ansible_env.HOME }}/anaconda3/bin/conda"
+    pip_executable: "{{ ansible_env.HOME }}/anaconda3/bin/pip"
+    conda_environments:
+      - name: data_science
+        python_version: "3.9"
+        packages:
+          - numpy
+          - pandas
+          - scikit-learn
+          - matplotlib
+          - jupyter
+      - name: web_dev
+        python_version: "3.8"
+        packages:
+          - flask
+          - django
+          - requests
+      - name: ml_env
+        python_version: "3.10"
+        packages:
+          - tensorflow
+          - pytorch
+          - keras
+
+  tasks:
+    - name: Ensure Conda is installed
+      ansible.builtin.stat:
+        path: "{{ conda_path }}"
+      register: conda_stat
+
+    - name: Fail if Conda is not installed
+      ansible.builtin.fail:
+        msg: "Conda is not installed at {{ conda_path }}. Please install Conda first."
+      when: not conda_stat.stat.exists
+
+    - name: Update Conda
+      ansible.builtin.command:
+        cmd: "{{ conda_path }} update -n base -c defaults conda -y"
+
+    - name: Create Conda environments
+      ansible.builtin.command:
+        cmd: "{{ conda_path }} create -n {{ item.name }} python={{ item.python_version }} -y"
+      loop: "{{ conda_environments }}"
+      register: conda_create
+      changed_when: conda_create.rc == 0
+      failed_when: 
+        - conda_create.rc != 0
+        - "'already exists' not in conda_create.stderr"
+
+    - name: Install packages in Conda environments
+      ansible.builtin.command:
+        cmd: "{{ conda_path }} run -n {{ item.0.name }} {{ pip_executable }} install {{ item.1 }}"
+      loop: "{{ conda_environments|subelements('packages') }}"
+
+    - name: List created environments
+      ansible.builtin.command:
+        cmd: "{{ conda_path }} env list"
+      register: env_list
+
+    - name: Display created environments
+      ansible.builtin.debug:
+        var: env_list.stdout_lines

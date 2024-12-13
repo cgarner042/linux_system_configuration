@@ -1,0 +1,219 @@
+---
+- name: Setup New Linux Machine
+  hosts: 
+    localhost:
+    vars:
+    ansible_connection: local
+    ansible_python_interpreter: "{{ansible_playbook_python}}"
+  become: true
+  vars:
+    anaconda_version: "2023.09-0"
+    server_address: "user@192.168.1.100"
+    server_path: "/path/to/files/on/server"
+    download_items:
+      - elegoo_kit
+      - code
+      - desktop
+      - 3d_models
+      - Ai_models
+      - jupyter_notebooks
+      - books
+      - downloaded_websites
+    packages:
+      - build-essential
+      - arduino
+      - darktable
+      - rsync
+      - virt-manager
+      - git
+      - htop
+      - cantor
+      - labplot
+      - tree
+    pip_packages:
+      - pyqt5
+      - pyqtwebengine
+      - selenium
+      - webdriver-manager
+      - beautifulsoup4
+      - chromedriver-autoinstaller
+    snap_packages:
+      - name: vlc
+      - name: spotify
+      - name: freecad
+    flatpak_packages:
+
+    deb_packages:
+      - name: google-chrome
+        url: "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+      - name: marktext
+        url: "https://github.com/marktext/marktext/releases/latest/download/marktext-amd64.deb"
+      - name: vs-code
+        url: "https://go.microsoft.com/fwlink/?LinkID=760868"
+    appimages:
+      - name: cura
+        url: "https://github.com/Ultimaker/Cura/releases/download/5.7.2-RC2/UltiMaker-Cura-5.7.2-linux-X64.AppImage"
+        icon: "cura-icon.png"
+        category: "Graphics"
+      - name: krita
+        url: "https://download.kde.org/stable/krita/5.1.5/krita-5.1.5-x86_64.appimage"
+        icon: "krita.png"
+        category: "Graphics"
+    bookmarks:
+      - "~/code"
+      - "~/3d_models"
+      - "~/Ai_models"
+    gnome_favorite_apps:
+      - org.gnome.Nautilus.desktop
+      - mailspring.desktop
+      - google-chrome.desktop
+      - opera.desktop
+      - org.gnome.Terminal.desktop
+      - jupyter-lab.desktop
+      - code.desktop
+      - arduino.desktop
+      - botango.desktop
+      - org.gnome.gedit.desktop
+      - freecad.desktop
+      - cura.desktop
+      - darktable.desktop
+    kde_favorite_apps:
+      - org.kde.dolphin.desktop
+      - mailspring.desktop
+      - google-chrome.desktop
+      - opera.desktop
+      - org.kde.konsole.desktop
+      - jupyter-lab.desktop
+      - code.desktop
+      - arduino.desktop
+      - botango.desktop
+      - org.kde.kate.desktop
+      - freecad.desktop
+      - cura.desktop
+      - darktable.desktop
+
+  tasks:
+    - name: Determine OS family
+      ansible.builtin.set_fact:
+        is_debian: "{{ ansible_os_family == 'Debian' }}"
+        is_arch: "{{ ansible_os_family == 'Archlinux' }}"
+
+    - name: Update package cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: yes
+      when: is_debian
+
+    - name: Update package cache (Arch)
+      community.general.pacman:
+        update_cache: yes
+      when: is_arch
+
+    - name: Install base packages (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: "{{ packages }}"
+        state: present
+      when: is_debian
+
+    - name: Install base packages (Arch)
+      community.general.pacman:
+        name: "{{ packages }}"
+        state: present
+      when: is_arch
+
+    # - name: Install Anaconda
+    #   ansible.builtin.shell: |
+    #     wget https://repo.anaconda.com/archive/Anaconda3-{{ anaconda_version }}-Linux-x86_64.sh -O /tmp/anaconda.sh
+    #     bash /tmp/anaconda.sh -b -p $HOME/anaconda3
+    #     rm /tmp/anaconda.sh
+    #     $HOME/anaconda3/bin/conda init
+    #   args:
+    #     creates: "$HOME/anaconda3"
+
+    - name: Install pip packages
+      ansible.builtin.pip:
+        name: "{{ pip_packages }}"
+        executable: "{{ ansible_env.HOME }}/anaconda3/bin/pip"
+
+    - name: Install Snap
+      ansible.builtin.package:
+        name: snapd
+        state: present
+
+    - name: Install Snap packages
+      community.general.snap:
+        name: "{{ item.name }}"
+        classic: "{{ item.classic | default(omit) }}"
+      loop: "{{ snap_packages }}"
+
+    - name: Install Flatpak
+      ansible.builtin.package:
+        name: flatpak
+        state: present
+
+    - name: Install Flatpak packages
+      community.general.flatpak:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ flatpak_packages }}"
+
+    - name: Download and install .deb packages
+      ansible.builtin.apt:
+        deb: "{{ item.url }}"
+      loop: "{{ deb_packages }}"
+      when: is_debian
+
+    - name: Create AppImages directory
+      ansible.builtin.file:
+        path: "$HOME/AppImages"
+        state: directory
+
+    - name: Download and setup AppImages
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "$HOME/AppImages/{{ item.name }}.AppImage"
+        mode: '0755'
+      loop: "{{ appimages }}"
+
+    - name: Create .desktop files for AppImages
+      ansible.builtin.template:
+        src: appimage.desktop.j2
+        dest: "$HOME/.local/share/applications/{{ item.name }}.desktop"
+      loop: "{{ appimages }}"
+
+    - name: Download files from server
+      ansible.builtin.synchronize:
+        src: "{{ server_address }}:{{ server_path }}/{{ item }}"
+        dest: "$HOME/"
+      loop: "{{ download_items }}"
+
+    - name: Set up GNOME favorites
+      community.general.dconf:
+        key: "/org/gnome/shell/favorite-apps"
+        value: "{{ gnome_favorite_apps | to_json }}"
+      when: ansible_env.XDG_CURRENT_DESKTOP == "GNOME"
+
+    - name: Set up KDE favorites
+      community.general.ini_file:
+        path: ~/.config/plasma-org.kde.plasma.desktop-appletsrc
+        section: Containments[1].Applets[2].Configuration.General
+        option: favorites
+        value: "{{ kde_favorite_apps | join(';') }}"
+      when: ansible_env.XDG_CURRENT_DESKTOP == "KDE"
+
+    - name: Add bookmarks
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_env.HOME }}/.config/gtk-3.0/bookmarks"
+        line: "file://{{ item }}"
+        create: yes
+      loop: "{{ bookmarks }}"
+
+    - name: Upgrade all packages (Debian/Ubuntu)
+      ansible.builtin.apt:
+        upgrade: full
+      when: is_debian
+
+    - name: Upgrade all packages (Arch)
+      community.general.pacman:
+        upgrade: yes
+      when: is_arch
+

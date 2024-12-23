@@ -1,3 +1,47 @@
+[Android Studio]
+Description=Android Studio
+position=1376,414
+positionrule=3
+size=1378,694
+sizerule=3
+types=1
+wmclass=jetbrains-studio jetbrains-studio
+wmclasscomplete=true
+wmclassmatch=1
+
+[LibreOffice Writer]
+Description=LibreOffice Writer
+position=1376,0
+positionrule=3
+size=1376,1108
+sizerule=3
+types=1
+wmclass=soffice.bin libreoffice-writer
+wmclasscomplete=true
+wmclassmatch=1
+
+[Marktext]
+Description=Marktext
+position=1376,0
+positionrule=3
+size=1376,414
+sizerule=3
+types=1
+wmclass=marktext marktext
+wmclasscomplete=true
+wmclassmatch=1
+
+[Opera]
+Description=Opera
+position=0,0
+positionrule=3
+size=1376,1108
+sizerule=3
+types=1
+wmclass=Opera Opera
+wmclasscomplete=true
+wmclassmatch=1
+
 [Settings for Dolphin]
 Description=Settings for Dolphin
 position=2231,0
@@ -39,5 +83,28 @@ size=1378,694
 sizerule=3
 types=1
 wmclass=kate org.kde.kate
+wmclasscomplete=true
+wmclassmatch=1
+
+[VS-Code]
+Description=VS-Code
+position=1376,415
+positionrule=3
+size=1376,693
+sizerule=3
+types=1
+wmclass=code Code
+wmclasscomplete=true
+wmclassmatch=1
+
+[Window settings for lsp server - Google Search - Google Chrome]
+Description=Window settings for lsp server - Google Search - Google Chrome
+position=0,0
+positionrule=3
+size=1376,1108
+sizerule=3
+title=lsp server - Google Search - Google Chrome
+types=1
+wmclass=google-chrome Google-chrome
 wmclasscomplete=true
 wmclassmatch=1

@@ -20,6 +20,10 @@ PACKAGER=""
 SUDO_CMD=""
 SUGROUP=""
 
+## Git global variables
+GIT_NAME="Chris Garner"
+GIT_EMAIL="cgarner042@gmail.com"
+
 ## Installation tracking
 # Should these move back to respective functions?
 INSTALLED=()
@@ -248,7 +252,8 @@ DEPENDENCIES=(
     "build-essential"
     "incron"
     "net-tools"
-    # Davinci_resolve
+    "ncdu"
+    # Davinci_resolve dependencies
     "libapr1"
     "libaprutil1"
     "libasound2"
@@ -288,6 +293,13 @@ PIP_PACKAGES=(
     "beautifulsoup4"
     "chromedriver-autoinstaller"
     "html2text"
+)
+
+# Conda channels to install
+CONDA_CHANNELS=(
+    "pytorch"
+    "huggingface"
+    "nvidia"
 )
 
 # Conda packages to install
@@ -750,23 +762,27 @@ installZoxide() {
 ###################
 
 setup_conda_env() {
-    log "${YELLOW}Gathering conda env setup scripts...${RC}"
-    if [ ! -d "$GITPATH/conda_scripts" ]; then
-        log "ERROR" "${RED}Directory $GITPATH/conda_scripts does not exist.${RC}"
-        return
+  # Add conda channels
+  log "${YELLOW}Adding conda channels...${RC}"
+  for channel in "${CONDA_CHANNELS[@]}"; do
+    if ! conda config --add channels "$channel"; then
+      log "ERROR" "${RED}Failed to add $channel channel${RC}"
     fi
-    for script in "$GITPATH/conda_scripts"/*; do
-        script_name=$(basename "$script" | cut -d '.' -f 1)
-        if conda env list "$script_name" >/dev/null 2>&1; then
-            continue
-        else
-            log "Running setup script: ${script##*/}"
-            if ! bash "$script"; then
-                log "ERROR" "${RED}Failed to run script: ${script##*/}${RC}"
-                FAILED_CONDA+=("${script##*/}")
-            fi
-        fi
-    done
+  done
+
+  # Create conda environments
+  log "${YELLOW}Gathering conda env setup files...${RC}"
+  local conda_env_dir="$GITPATH/conda_env"
+  if [ ! -d "$conda_env_dir" ]; then
+    log "ERROR" "${RED}Directory $conda_env_dir does not exist.${RC}"
+    return
+  fi
+  for yaml_file in "$conda_env_dir"/*.yaml; do
+    if ! conda env create -f "$yaml_file"; then
+      log "ERROR" "${RED}Failed to create conda environment from ${yaml_file##*/}${RC}"
+      FAILED_CONDA+=("${yaml_file##*/}")
+    fi
+  done
 }
 
 create_fastfetch_config() {
@@ -847,6 +863,13 @@ configure_jupyter() {
             FAILED_MISC+=("jupyter_configuration")
     fi
     log "${GREEN}Finished configuring Jupyter.${RC}"
+}
+
+configure_git() {
+    log "${YELLOW}Configuring global Git settings...${RC}"
+    git config --global user.name "$GIT_NAME"
+    git config --global user.email "$GIT_EMAIL"
+    git config --global core.excludesfile ~/.gitignore_global
 }
 
 ###################
@@ -935,6 +958,7 @@ main() {
 
     # Final configurations
     configure_jupyter
+    configure_git
 
     # Handle any failures
     handle_failed_installations
@@ -958,13 +982,15 @@ echo -e "$(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
 ####################
 
 
-# TODO: Conda:
-#   - change env setup to .yaml (conda env create -f conda.yaml)
-#   - add channels pytorch, huggingface, nvidia (conda config --add channels $channel)
+
 # TODO: $INSTALLED is not being used: handle_failed_installations
 # TODO: add $EXPECTED variable to compare to $INSTALLED at the end of the script
 
 # TODO: make bashrc and starship symlinks instead of copies
+
+# TODO: setup git
+#   - git config --global user.name "Chris Garner"
+#   - git config --global user.email "cgarner042@gmail.com"
 
 # TODO: add symlink to .gitignore_global in home directory then run the following to enable it
 #   - git config --global core.excludesfile ~/.gitignore_global
@@ -977,6 +1003,13 @@ echo -e "$(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
 #     - nvidia persistance and or hybrid sleep in config files
 #     - set font fot terminal: ctrl + shift + , (comma)
 #     - import kwin rules
+#     - pin perplexity, meta ai, claude, and chat gpt to browsers
+#     - git config --global credential.helper store
+#     - ad install commands for any programs that do not work in the script (vscode)
+
+# TODO: sudo snap install android-studio --classic
+#   - Configure VM acceleration on Linux: https://developer.android.com/studio/run/emulator-acceleration#vm-linux
+#   - sudo apt install google-android-platform-tools-installer
 
 # BUG: flatpaks are installed and can be opened from terminal but do not show in app launcher
 #     possible troublshooting step
@@ -999,7 +1032,6 @@ FAILED(){
     ####
     iostat                      # Unable to locate package
     vulkan-sdk                  # Unable to locate package
-    fonts_dont_seem_to_be_installed_properly
     ## conda scripts
     ####
     codellama7binstruct.sh      # conda_scripts/codellama7binstruct.sh: line 47: /setup.log: Permission denied

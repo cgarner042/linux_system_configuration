@@ -1,0 +1,25 @@
+name: transcription_app
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.1  # Ensure compatibility with your CUDA version
+  - pyqt
+  - ffmpeg
+  - numpy
+  - scipy
+  - transformers
+  - sentencepiece
+  - accelerate
+  - bitsandbytes
+  - peft
+  - huggingface_hub
+  # - whisper-tokenizer  # Assuming using a tokenizer for Whisper. should be installed with the pip package?
+  - pip
+  - pip:
+      - openai-whisper  # Install Whisper using pip. may need: git+https://github.com/openai/whisper.git instead
+      - mistral_inference # Install mistral_inference using pip

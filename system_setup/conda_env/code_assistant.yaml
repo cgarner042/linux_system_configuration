@@ -1,0 +1,19 @@
+name: ai_code_assistant
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=11.8
+  - transformers
+  - scipy
+  - numpy
+  - tokenizers
+  - sentencepiece
+  - huggingface_hub
+  - pip
+  - pip:
+      - llama-cpp-python

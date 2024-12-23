@@ -282,6 +282,7 @@ PACKAGES=(
     "labplot"
     "gedit"
     "gnome-disk-utility"
+    "librewolf"
 )
 
 # Pip packages to install
@@ -318,14 +319,16 @@ SNAP_PACKAGES=(
     "kate"
     "ksnip"
     "gitkraken"
+    "mdless"
+    "okular"
+    "spectacle"
+    "marktext"
+
 )
 
 # Flatpak packages to install
 FLATPAK_PACKAGES=(
-    "io.gitlab.librewolf-community"
-    "com.github.marktext.marktext"
-    "org.kde.kwrite"
-    "org.kde.spectacle"
+
 )
 
 # Backup anaconda version to install if promt is skipped
@@ -973,6 +976,7 @@ main() {
 main "$@"
 log "${GREEN}Script finished successfully.${RC}"
 echo -e "$(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
+mdless POST_INSTALL_INSTRUCTIONS.md
 
 
 
@@ -987,13 +991,6 @@ echo -e "$(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
 # TODO: add $EXPECTED variable to compare to $INSTALLED at the end of the script
 
 # TODO: make bashrc and starship symlinks instead of copies
-
-# TODO: setup git
-#   - git config --global user.name "Chris Garner"
-#   - git config --global user.email "cgarner042@gmail.com"
-
-# TODO: add symlink to .gitignore_global in home directory then run the following to enable it
-#   - git config --global core.excludesfile ~/.gitignore_global
 
 # TODO: create update function to run before and after package installations. add to cleanup function?
 
@@ -1023,7 +1020,7 @@ echo -e "$(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
 #     - Check for conflicts with other package managers
 #     - Verify application permissions
 
-# BUG: conda env not recognized (runs 34b again)
+
 
 
 

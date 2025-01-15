@@ -16,21 +16,37 @@ Press Ctrl + Shift + , (comma) to adjust the font in konsole.
 
 Import your custom KWin rules for personalized window management.
 
-## Set standard application for opening .md files
+## Set default utilities and aplications
 
-- Okular
-- mdless
-- marktext
-- zettler
-- glow
+1. .md files
+    - Okular
+    - mdless
+    - marktext
+    - zettler
+    - glow
 
+2. screenshot utility
+    - spectacle
+    - flameshot
+
+3. browser (I like to set a browser that is not my primary browser as default to allow for a second windowwhen opening something)
+    - librewolf <default>
+    - firefox
+    - chrome
+    - vivaldi
+    - opera <primary>
+
+4. text editor / IDE
+    - kate
+    - codium
 ## Pin AI Apps to Browser
 
 Pin Perplexity, Meta AI, Claude, and ChatGPT to your browser for easy access.
 
 ## Git Credential Helper
 
-Run `git config --global credential.helper store` to enable credential caching.
+- Run `git config --global credential.helper store` to enable credential caching.
+- pull repos to set credentials
 
 ## Manual Installation for Unsupported Apps
 
@@ -39,10 +55,21 @@ Run the following commands to install additional apps:
 * VSCode: <insert installation command here>
 * kate: <insert installation commands here>
 * gitkraken: <>
+* codium: <sudo snap install codium --classic>
 
 ## Extra install scripts
 
 please view the extra_install_scripts folder to see if they have been install or need to be run manually
+
+## AppImages
+
+Run AppImage script to extract and install appimages
+
+- Cura
+- Typora
+- Joplin
+- Obsidian
+- Zettler
 
 ## Backup and synch
 

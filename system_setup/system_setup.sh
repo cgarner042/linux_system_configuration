@@ -50,7 +50,7 @@ FAILED_MISC=()
 # Logging & Debugging
 ###################
 
-LOG_FILE="$HOME/Desktop/linux_set_up.log"
+LOG_FILE="$HOME/logs/linux_set_up.log"
 
 log() {
     local level="${1:-INFO}"
@@ -253,14 +253,9 @@ DEPENDENCIES=(
     "incron"
     "net-tools"
     "ncdu"
-    # Davinci_resolve dependencies
-    "libapr1"
-    "libaprutil1"
-    "libasound2"
-    "libglib2.0-0"
     # bechmarking for troublshooting script
     "fio"
-    "iostat"
+    "sysstat"
     "mesa-utils"
     "vulkan-sdk"
     "stress-ng"
@@ -323,6 +318,7 @@ SNAP_PACKAGES=(
     "okular"
     "spectacle"
     "marktext"
+    "typora"
 
 )
 
@@ -952,7 +948,7 @@ main() {
     install_deb_rpm_packages
     install_snap_packages
     install_flatpak_packages
-    install_appimages
+#     install_appimages
 
     # Extra applications
     install_extra_apps
@@ -996,17 +992,13 @@ mdless POST_INSTALL_INSTRUCTIONS.md
 
 # TODO: setup clamav config, user docs, and cron jobs (seperate script?)
 
-# TODO: do i want a document (or echo statement?) to open at the end of this with instructions for extra things script for extra things?
-#     - nvidia persistance and or hybrid sleep in config files
-#     - set font fot terminal: ctrl + shift + , (comma)
-#     - import kwin rules
-#     - pin perplexity, meta ai, claude, and chat gpt to browsers
-#     - git config --global credential.helper store
-#     - ad install commands for any programs that do not work in the script (vscode)
-
 # TODO: sudo snap install android-studio --classic
 #   - Configure VM acceleration on Linux: https://developer.android.com/studio/run/emulator-acceleration#vm-linux
 #   - sudo apt install google-android-platform-tools-installer
+
+# TODO: add repository function
+#   - use `sudo apt install extrepo -y` ??
+#   - sudo extrepo enable librewolf
 
 # BUG: flatpaks are installed and can be opened from terminal but do not show in app launcher
 #     possible troublshooting step
@@ -1020,6 +1012,10 @@ mdless POST_INSTALL_INSTRUCTIONS.md
 #     - Check for conflicts with other package managers
 #     - Verify application permissions
 
+# TODO: moving appimages to second script. (new script is semi-functional. install_appimages function is currently commented out of this script)
+#   - need for more recent versions
+#   - updating for better control of process
+
 
 
 
@@ -1027,12 +1023,14 @@ mdless POST_INSTALL_INSTRUCTIONS.md
 FAILED(){
     ## dependencies
     ####
-    iostat                      # Unable to locate package
+
     vulkan-sdk                  # Unable to locate package
+                                # https://vulkan.lunarg.com/doc/view/latest/linux/getting_started.html
+                                # https://vulkan.lunarg.com/sdk/home#linux
+                                # https://www.amd.com/en/resources/support-articles/faqs/GPU-646.html
     ## conda scripts
     ####
-    codellama7binstruct.sh      # conda_scripts/codellama7binstruct.sh: line 47: /setup.log: Permission denied
-    Change_these_to_.yaml_files # conda env create -f conda.yaml
+
     ## snap
     ####
     code                        # error: This revision of snap "code" was published using classic confinement

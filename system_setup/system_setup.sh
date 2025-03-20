@@ -1,5 +1,13 @@
 #!/bin/sh -x
-exec > >(tee $HOME/Desktop/setup_terminal_output.log) 2>&1
+TIMESTAMP=$(date +%Y-%m-%d_%H:%M)
+LOG_DIR="$HOME/logs/system_setup$TIMESTAMP"
+
+LOG_FILE="$LOG_DIR/linux_set_up.log"
+TERMINAL_OUTPUT_FILE="$LOG_DIR/terminal_output.log"
+FAILURE_FILE="$LOG_DIR/failures.log"
+mkdir -p "$LOG_DIR"
+
+exec > >(tee "$TERMINAL_OUTPUT_FILE") 2>&1
 ###################
 # Initialize variables
 ###################
@@ -27,6 +35,15 @@ GIT_EMAIL="cgarner042@gmail.com"
 ## Installation tracking
 # Should these move back to respective functions?
 INSTALLED=()
+EXPECTED=(
+    "${DEPENDENCIES[@]}"
+    "${PACKAGES[@]}"
+    "${PIP_PACKAGES[@]}"
+    "${CONDA_PACKAGES[@]}"
+    "${SNAP_PACKAGES[@]}"
+    "${FLATPAK_PACKAGES[@]}"
+    "${!APPIMAGE_CONFIGS[@]}"
+)
 uninstalled_dependencies=()
 FAILED_DEPENDENCIES=()
 uninstalled_packages=()
@@ -50,8 +67,6 @@ FAILED_MISC=()
 # Logging & Debugging
 ###################
 
-LOG_FILE="$HOME/logs/linux_set_up.log"
-
 log() {
     local level="${1:-INFO}"
     local message="$2"
@@ -68,6 +83,7 @@ trap 'log "ERROR" "Error occurred in ${BASH_SOURCE[0]} at line ${LINENO}: $? - $
 # Debugging: Test the error trap by using a failing command
 log "INFO" "Testing the error trap..."
 false
+log "INFO" "Testing complete"
 
 critical_error() {
     local message="$1"
@@ -81,7 +97,18 @@ critical_error() {
 ###################
 
 command_exists() {
-    command -v "$1" >/dev/null 2>&1
+    local package_name="$1"
+    local binary_name="${DEPENDENCIES[$package_name]}"
+    
+    if [ -z "$binary_name" ]; then
+        # If no mapping exists, assume the package name is the binary name
+        binary_name="$package_name"
+    fi
+
+    # Check if the binary exists
+    if type -P "$binary_name" > /dev/null; then
+        return 0  # Binary exists
+    fi
 }
 
 check_nvidia() {
@@ -108,7 +135,7 @@ checkEnv() {
         fi
     done
     ## Check Package Handler
-    PACKAGEMANAGER='nala apt dnf zypper'
+    PACKAGEMANAGER='nala apt-get dnf zypper'
     for pgm in $PACKAGEMANAGER; do
         if command_exists "$pgm"; then
             PACKAGER="$pgm"
@@ -121,7 +148,7 @@ checkEnv() {
     fi
     ## Set system variables
     case $PACKAGER in
-        nala|apt)
+        nala|apt-get)
             INSTALL="install -y"
             CLEAN="clean"
             UPDATE="update"
@@ -194,7 +221,7 @@ checkEnv() {
 
 check_package(){
     case $PACKAGER in
-        nala|apt)
+        nala|apt-get)
             dpkg -l | grep -q "$1"
             ;;
         dnf|yum)
@@ -218,7 +245,7 @@ cleanup() {
 update(){
     log "${YELLOW}Performing updates${RC}"
     case $PACKAGER in
-        nala|apt|dnf)
+        nala|apt-get|dnf)
             ${SUDO_CMD} ${PACKAGER} ${UPDATE} && ${SUDO_CMD} ${PACKAGER} ${UPGRADE}
             ;;
         zypper)
@@ -231,36 +258,35 @@ update(){
 # Configuration
 ###################
 
-DEPENDENCIES=(
-    "bash"
-    "bash-completion"
-    "trash-cli"
-    "ripgrep"
-    "tar"
-    "bat"
-    "tree"
-    "multitail"
-    "fastfetch"
-    "wget"
-    "unzip"
-    "fontconfig"
-    "gnome-terminal" #dependency for git desktop #switched to git kraken? may not need anymore
-    "rsync"
-    "virt-manager"
-    "git"
-    "htop"
-    "build-essential"
-    "incron"
-    "net-tools"
-    "ncdu"
-    # bechmarking for troublshooting script
-    "fio"
-    "sysstat"
-    "mesa-utils"
-    "vulkan-sdk"
-    "stress-ng"
-    "mbw"
-
+declare -A DEPENDENCIES=(
+    # Format: ["package_name"]="command1 command2 ..."
+    ["bash"]="bash"
+    ["bash-completion"]="bash_completion"
+    ["trash-cli"]="trash"
+    ["ripgrep"]="rg"
+    ["tar"]="tar"
+    ["bat"]="bat"
+    ["tree"]="tree"
+    ["multitail"]="multitail"
+    ["wget"]="wget"
+    ["unzip"]="unzip"
+    ["fontconfig"]="fc-cache"
+    ["rsync"]="rsync"
+    ["virt-manager"]="virt-manager"
+    ["git"]="git"
+    ["htop"]="htop"
+    ["build-essential"]="gcc"  # build-essential provides gcc, make, etc.
+    ["incron"]="incrond"
+    ["net-tools"]="ifconfig"
+    ["ncdu"]="ncdu"
+    ["pandoc"]="pandoc"
+    ["fio"]="fio"
+    ["sysstat"]="iostat"
+    ["mesa-utils"]="glxinfo glxgears"  # mesa-utils provides multiple commands
+    ["vulkan-sdk"]="vulkaninfo"
+    ["stress-ng"]="stress-ng"
+    ["mbw"]="mbw"
+    ["gnome-disk-utility"]="gnome-disks"  # gnome-disk-utility provides gnome-disks
 )
 
 # System config files
@@ -300,7 +326,7 @@ CONDA_CHANNELS=(
 
 # Conda packages to install
 CONDA_PACKAGES=(
-
+    "pip"
 )
 
 # Snap packages to install
@@ -310,15 +336,16 @@ SNAP_PACKAGES=(
     "freecad"
     "opera"
     "mailspring"
-    "code"
-    "kate"
+#    "code"
+#    "kate"
     "ksnip"
-    "gitkraken"
+#    "gitkraken"
     "mdless"
     "okular"
     "spectacle"
     "marktext"
     "typora"
+    "openscad"
 
 )
 
@@ -392,38 +419,44 @@ install_anaconda() {
     log "Initializing Conda"
     "$HOME/anaconda3/bin/conda" init || log "ERROR" "${RED}Failed to initialize Conda${RC}"
     log "${GREEN}Finished install_anaconda function.${RC}"
+    # Prompt user to restart the terminal
+    log "${YELLOW}Please close the terminal window to enable Conda and run the script again to finish the setup.${RC}"
+    exit 0
 }
 
 check_conda() {
-    log "Checking for Conda"
+    log "${YELLOW}Checking for Conda...${RC}"
     if command_exists conda; then
         log "${GREEN}Anaconda is already installed.${RC}"
     else
         log "installing Anaconda"
         install_anaconda
-        # restart script to make conda and pip commands available
+        # restart script to make conda and pip commands available (This is now being done manually at the end of install_anaconda())
+        log "${YELLOW}Restarting script${RC}"
         exec bash "${BASH_SOURCE[0]}"
     fi
 }
 
 installDepend() {
     ## Check for dependencies.
-    log "$YELLOW}Checking for dependencies...${RC}"
-    for dep in ${DEPENDENCIES[@]}; do
-        if ! check_package "$dep"; then
-            uninstalled_dependencies+=("$dep")
+    log "${YELLOW}Checking for dependencies...${RC}"
+    for pkg in "${!DEPENDENCIES[@]}"; do
+        if ! command_exists "$pkg"; then
+            uninstalled_dependencies+=("$pkg")
         fi
     done
+
     log "${YELLOW}Installing dependencies...${RC}"
-    for dependency in ${uninstalled_dependencies[@]}; do
-        log "Installing $dependency..."
-        ${SUDO_CMD} ${PACKAGER} ${INSTALL} "$dependency" || log "ERROR" "${RED}Failed to install $dependency${RC}" && FAILED_DEPENDENCIES+=("$dependency")
-    done
-    for depend in ${DEPENDENCIES[@]}; do
-        if check_package "$depend"; then
-            INSTALLED+=("$depend")
+    for pkg in "${uninstalled_dependencies[@]}"; do
+        log "Installing $pkg..."
+        if ! ${SUDO_CMD} ${PACKAGER} ${INSTALL} "$pkg"; then
+            log "ERROR" "${RED}Failed to install $pkg${RC}"
+            FAILED_DEPENDENCIES+=("$pkg")
+        else
+            INSTALLED+=("$pkg")
         fi
     done
+
     log "${GREEN}Finished installing system dependencies.${RC}"
     # Check to see if the MesloLGS Nerd Font is installed (Change this to whatever font you would like)
     FONT_NAME="MesloLGS Nerd Font Mono"
@@ -455,7 +488,7 @@ installDepend() {
 install_packages() {
     log "${YELLOW}Checking for packages...${RC}"
     for package in "${PACKAGES[@]}"; do
-        if ! check_package "$package"; then
+        if ! command_exists "$package"; then
             uninstalled_packages+=("$package")
         fi
     done
@@ -465,7 +498,7 @@ install_packages() {
         ${SUDO_CMD} ${PACKAGER} ${INSTALL} "$package" || log "ERROR" "${RED}$package failed to install${RC}" && FAILED_PACKAGES+=("$package")
     done
     for package in "${PACKAGES[@]}"; do
-        if check_package "$package"; then
+        if command_exists "$package"; then
             INSTALLED+=("$package")
         fi
     done
@@ -547,7 +580,7 @@ install_deb_rpm_packages() {
 }
 
 install_snap_packages() {
-    log "Checking for Snap package manager..."
+    log "${YELLOW}Checking for Snap package manager...${RC}"
     if ! command_exists snap; then
         log "WARN" "${YELLOW}Snap package manager not found. Installing Snap...${RC}"
         ${SUDO_CMD} ${PACKAGER} ${INSTALL} "snapd" || log "ERROR" "${RED}Failed to install Snap package manager${RC}"
@@ -572,12 +605,12 @@ install_snap_packages() {
 }
 
 install_flatpak_packages() {
-    log "Checking for Flatpak package manager..."
+    log "${YELLOW}Checking for Flatpak package manager...${RC}"
     if ! command_exists flatpak; then
         log "WARN" "${YELLOW}Flatpak package manager not found. Installing Flatpak...${RC}"
         ${SUDO_CMD} ${PACKAGER} ${INSTALL} "flatpak" || log "ERROR" "${RED}Failed to install Flatpak package manager${RC}"
     fi
-    log "Adding Flathub repository..."
+    log "${YELLOW}Adding Flathub repository...${RC}"
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     log "${YELLOW}Checking for missing Flatpak packages${RC}"
     for flatpak_package in "${FLATPAK_PACKAGES[@]}"; do
@@ -674,7 +707,7 @@ install_extra_apps() {
             case "$script" in
                 *.sh)
                     log "Running extra installation script: $(basename "$script")"
-                    if ! bash "$script" | tee -a "$HOME/Desktop/setup_terminal_output.log"; then
+                    if ! bash "$script" | tee -a "$TERMINAL_OUTPUT_FILE"; then
                         log "ERROR" "${RED}Failed to run $(basename "$script")${RC}"
                         FAILED_EXTRA_SCRIPTS+=("$(basename "$script")")
                     else
@@ -682,7 +715,7 @@ install_extra_apps() {
                     fi
                     ;;
                 *.run)
-                    if ! chmod +x "$script" || ! "./$script" | tee -a "$HOME/Desktop/setup_terminal_output.log"; then
+                    if ! chmod +x "$script" || ! "./$script" | tee -a "$TERMINAL_OUTPUT_FILE"; then
                         log "ERROR" "${RED}Failed to run $(basename "$script")${RC}"
                         FAILED_EXTRA_SCRIPTS+=("$(basename "$script")")
                     else
@@ -697,7 +730,7 @@ install_extra_apps() {
 }
 
 install_clam_av(){
-    log "${YELLOW} Checking for ClamAV...${RC}"
+    log "${YELLOW}Checking for ClamAV...${RC}"
     for service in "${CLAM_SERVICES[@]}"; do
         if ! command_exists "$service"; then
             log "${YELLOW}Installing clamav anti-virus...${RC}"
@@ -776,10 +809,29 @@ setup_conda_env() {
     log "ERROR" "${RED}Directory $conda_env_dir does not exist.${RC}"
     return
   fi
+
   for yaml_file in "$conda_env_dir"/*.yaml; do
-    if ! conda env create -f "$yaml_file"; then
-      log "ERROR" "${RED}Failed to create conda environment from ${yaml_file##*/}${RC}"
+    # Extract the environment name from the YAML file
+    env_name=$(grep 'name:' "$yaml_file" | awk '{print $2}')
+    if [ -z "$env_name" ]; then
+      log "ERROR" "${RED}Failed to extract environment name from ${yaml_file##*/}${RC}"
       FAILED_CONDA+=("${yaml_file##*/}")
+      continue
+    fi
+
+    # Check if the environment already exists
+    if conda env list | grep -q "$env_name"; then
+      log "${GREEN}Conda environment '$env_name' already exists. Skipping...${RC}"
+      INSTALLED+=("$env_name")
+    else
+      log "${YELLOW}Creating conda environment '$env_name' from ${yaml_file##*/}...${RC}"
+      if conda env create -f "$yaml_file"; then
+        log "${GREEN}Successfully created conda environment '$env_name'.${RC}"
+        INSTALLED+=("$env_name")
+      else
+        log "ERROR" "${RED}Failed to create conda environment '$env_name' from ${yaml_file##*/}${RC}"
+        FAILED_CONDA+=("${yaml_file##*/}")
+      fi
     fi
   done
 }
@@ -889,30 +941,52 @@ handle_failed_installations() {
         FAILED[$array]=${temp_array[@]}  # Assign temp array to FAILED
         ((total_failures += ${#contents[@]}))
     done
-    if ((total_failures == 0)); then
-    log "${GREEN}All packages installed successfully.${RC}"
-    return
+
+    # Check for missing packages
+    local missing_packages=()
+    for package in "${EXPECTED[@]}"; do
+        if ! [[ " ${INSTALLED[@]} " =~ " ${package} " ]] && ! [[ " ${FAILED[@]} " =~ " ${package} " ]]; then
+            missing_packages+=("$package")
+        fi
+    done
+
+    if ((total_failures == 0)) && (( ${#missing_packages[@]} == 0 )); then
+        log "${GREEN}!!!All packages installed successfully!!!${RC}"
+        return
     fi
+
     log "${RED}Total failures: ${BLUE}$total_failures ${RED}Generating report...${RC}"
-    local report_file="$HOME/Desktop/installation_failures_$(date +%Y-%m-%d_%H:%M).txt"
+    local report_file="$FAILURE_FILE"
     {
         echo "Installation Failure Report"
         echo "============================"
         echo "Date: $(date)"
         echo "Total failures: $total_failures"
         echo
-            for array in "${!FAILED[@]}"; do
-                if [ ${#FAILED[$array]} -gt 0 ]; then
-                    echo "${array}:"
-                    for item in ${FAILED[$array]}; do
-                        echo "    $item"
-                    done
-                fi
-            done
-
+        echo "Successfully Installed Packages:"
+        echo "--------------------------------"
+        for package in "${INSTALLED[@]}"; do
+            echo "    $package"
+        done
+        echo
+        echo "Failed Installations:"
+        echo "---------------------"
+        for array in "${!FAILED[@]}"; do
+            if [ ${#FAILED[$array]} -gt 0 ]; then
+                echo "${array}:"
+                for item in ${FAILED[$array]}; do
+                    echo "    $item"
+                done
+            fi
+        done
+        echo
+        echo "Missing Packages:"
+        echo "-----------------"
+        for package in "${missing_packages[@]}"; do
+            echo "    $package"
+        done
     } > "$report_file"
     log "Failure report generated: $report_file"
-
 }
 
 ###################
@@ -932,7 +1006,7 @@ main() {
     installDepend
     installStarshipAndFzf
     installZoxide
-    create_fastfetch_config
+#    create_fastfetch_config
     for file in "${CONFIG_FILES[@]}"; do
         name="${file%%:*}"
         path="${file##*:}"
@@ -941,8 +1015,8 @@ main() {
 
     # Package installations
     install_packages
-    install_pip_on_base_env
     install_conda_packages
+    install_pip_on_base_env
     conda update -n base -c defaults conda
     setup_conda_env
     install_deb_rpm_packages
@@ -951,7 +1025,7 @@ main() {
 #     install_appimages
 
     # Extra applications
-    install_extra_apps
+#    install_extra_apps
     install_clam_av
     install_ollama
 
@@ -963,6 +1037,8 @@ main() {
     handle_failed_installations
 
     # Cleanup
+    conda init
+    conda update --all
     update
     cleanup
 
@@ -981,14 +1057,28 @@ mdless POST_INSTALL_INSTRUCTIONS.md
 # BUGS AND TODOS
 ####################
 
+# TODO: $EXPECTED is missing DEB_RPM_PACKAGES
+# TODO: now that im using type -P for command_exists() i dont think i need to use check_package() for deb/rpm packages?
+# TODO: pip error
 
+####################
+# DONE BUT NOT PUSHED
+####################
 
-# TODO: $INSTALLED is not being used: handle_failed_installations
-# TODO: add $EXPECTED variable to compare to $INSTALLED at the end of the script
+# TODO: log folder was not created
+# TODO: exit script after install_anaconda() with 'Please restart terminal to enable Conda and run again to finish script' or similar echo statement
+# TODO: $INSTALLED is not being used: add a successfully installed section to installation_failures_$(date +%Y-%m-%d_%H:%M).txt
+# TODO: create $EXPECTED variable. this should contain an array of all packages listed in the configuration section which should be compared to $INSTALLED and $FAILED arrays to check that all packages are acounted for
+# TODO: update and init conda
+# TODO: change command_exists() to type -P
+# TODO: change apt to apt-get
+# TODO: change log naming 
+# TODO: lets get rid of fastfetch?
+# TODO: check for conda env before installing them
 
-# TODO: make bashrc and starship symlinks instead of copies
-
-# TODO: create update function to run before and after package installations. add to cleanup function?
+####################
+# BUGS AND TODOS FOR A LATER DATE
+####################
 
 # TODO: setup clamav config, user docs, and cron jobs (seperate script?)
 
@@ -1000,7 +1090,7 @@ mdless POST_INSTALL_INSTRUCTIONS.md
 #   - use `sudo apt install extrepo -y` ??
 #   - sudo extrepo enable librewolf
 
-# BUG: flatpaks are installed and can be opened from terminal but do not show in app launcher
+# BUG: flatpaks are installed and can be opened from terminal but do not show in app launcher (Kubuntu 24.10)
 #     possible troublshooting step
 #     - sudo gtk-update-icon-cache /usr/share/icons/hicolor
 #     - sudo kde5-config --path icon
@@ -1020,54 +1110,4 @@ mdless POST_INSTALL_INSTRUCTIONS.md
 
 
 
-FAILED(){
-    ## dependencies
-    ####
 
-    vulkan-sdk                  # Unable to locate package
-                                # https://vulkan.lunarg.com/doc/view/latest/linux/getting_started.html
-                                # https://vulkan.lunarg.com/sdk/home#linux
-                                # https://www.amd.com/en/resources/support-articles/faqs/GPU-646.html
-    ## conda scripts
-    ####
-
-    ## snap
-    ####
-    code                        # error: This revision of snap "code" was published using classic confinement
-                                #        and thus may perform arbitrary system changes outside of the security
-                                #        sandbox that snaps are usually confined to, which may put your system at
-                                #        risk.
-                                #
-                                #        If you understand and want to proceed repeat the command including
-                                #        --classic.
-
-    kate                        # error: This revision of snap "kate" was published using classic confinement
-                                #        and thus may perform arbitrary system changes outside of the security
-                                #        sandbox that snaps are usually confined to, which may put your system at
-                                #        risk.
-                                #
-                                #        If you understand and want to proceed repeat the command including
-                                #        --classic.
-    gitkraken                   # error: This revision of snap "gitkraken" was published using classic confinement
-                                #        and thus may perform arbitrary system changes outside of the security
-                                #        sandbox that snaps are usually confined to, which may put your system at
-                                #        risk.
-                                #
-                                #        If you understand and want to proceed repeat the command including
-                                #        --classic.
-    ## flatpak
-    ####
-    org.kde.spectacle           # Nothing matches org.kde.spectacle in remote flathub
-    zettlr                      # [Downloading Zettlr markdown editor...] -
-                                # [Using existing /home/garner/AppImages/zettlr.AppImage] -
-                                # [Extracting zettlr AppImage...] -
-                                # /home/garner/AppImages/zettlr.AppImage: line 1: syntax error near unexpected token `newline'
-                                # /home/garner/AppImages/zettlr.AppImage: line 1: `<!DOCTYPE html>'
-                                # [ERROR] - Failed to extract zettlr AppImage
-    ## extra_install_scripts
-    ####
-    DaVinci_Resolve             # system_setup.sh: line 669: .//home/garner/system_setup/extra_install_scripts/DaVinci_Resolve.run: No such file or directory
-    FoxitReader                 # system_setup.sh: line 669: .//home/garner/system_setup/extra_install_scripts/FoxitReader.run: No such file or directory
-
-
-}

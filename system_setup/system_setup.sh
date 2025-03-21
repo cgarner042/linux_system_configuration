@@ -1058,23 +1058,15 @@ mdless POST_INSTALL_INSTRUCTIONS.md
 ####################
 
 # TODO: $EXPECTED is missing DEB_RPM_PACKAGES
-# TODO: now that im using type -P for command_exists() i dont think i need to use check_package() for deb/rpm packages?
+# TODO: now that im using type -P for command_exists() i dont think i need to use check_package() for deb/rpm packages? wrap into command_exists() for mor robust function?
 # TODO: pip error
+# TODO: set up flatpak to mirror snap and prompt user which to use?
 
 ####################
 # DONE BUT NOT PUSHED
 ####################
 
-# TODO: log folder was not created
-# TODO: exit script after install_anaconda() with 'Please restart terminal to enable Conda and run again to finish script' or similar echo statement
-# TODO: $INSTALLED is not being used: add a successfully installed section to installation_failures_$(date +%Y-%m-%d_%H:%M).txt
-# TODO: create $EXPECTED variable. this should contain an array of all packages listed in the configuration section which should be compared to $INSTALLED and $FAILED arrays to check that all packages are acounted for
-# TODO: update and init conda
-# TODO: change command_exists() to type -P
-# TODO: change apt to apt-get
-# TODO: change log naming 
-# TODO: lets get rid of fastfetch?
-# TODO: check for conda env before installing them
+# TODO: 
 
 ####################
 # BUGS AND TODOS FOR A LATER DATE

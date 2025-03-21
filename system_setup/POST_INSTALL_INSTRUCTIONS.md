@@ -10,7 +10,9 @@ Nvidia persistence may not work. If so, please set the system to not sleep or hy
 
 ## Set Terminal Font
 
-Press Ctrl + Shift + , (comma) to adjust the font in konsole.
+Press Ctrl + Shift + , (comma) to adjust the font in Konsole.
+
+Right click -> properties in Gnome Terminal
 
 ## Import KWin Rules
 
@@ -18,13 +20,16 @@ Import your custom KWin rules for personalized window management.
 
 ## Set default utilities and aplications
 
+Set in settings on KDE or right click a file of each type for properties in Gnome
+
 1. .md files
     - Okular
+    - **Typora**
     - mdless
     - marktext
     - zettler
     - glow
-
+    
 2. screenshot utility
     - spectacle
     - flameshot
@@ -64,6 +69,10 @@ please view the extra_install_scripts folder to see if they have been install or
 ## AppImages
 
 Run AppImage script to extract and install appimages
+
+(Script is broken at this time)
+
+(Some of these may be available as Flatpaks)
 
 - Cura
 - Typora
